@@ -1,6 +1,7 @@
 var _ = require('lodash')
 var rotator = require('./rotator')
 var ImagePool = require('./imagepool')
+window.framePerSecond = 2
 
 module.exports = function DeviceScreenDirective(
   $document
@@ -300,20 +301,31 @@ module.exports = function DeviceScreenDirective(
                 })
 
                 var img = imagePool.next()
+                var _this = this
 
                 img.onload = function() {
-                  updateImageArea(this)
+                  _this.image = this
+                  if (!_this.rendering) {
+                    _this.rendering = true
+                    setTimeout(function() {
+                      if (_this.image) {
+                        g.drawImage(_this.image, 0, 0, _this.image.width, _this.image.height)
+                        updateImageArea(_this.image)
+                        
 
-                  g.drawImage(img, 0, 0, img.width, img.height)
-
-                  // Try to forcefully clean everything to get rid of memory
-                  // leaks. Note that despite this effort, Chrome will still
-                  // leak huge amounts of memory when the developer tools are
-                  // open, probably to save the resources for inspection. When
-                  // the developer tools are closed no memory is leaked.
-                  img.onload = img.onerror = null
-                  img.src = BLANK_IMG
-                  img = null
+                        // Try to forcefully clean everything to get rid of memory
+                        // leaks. Note that despite this effort, Chrome will still
+                        // leak huge amounts of memory when the developer tools are
+                        // open, probably to save the resources for inspection. When
+                        // the developer tools are closed no memory is leaked.
+                        _this.image.onload = _this.image.onerror = null
+                        _this.image.src = BLANK_IMG
+                        _this.image = null
+                        _this.rendering = false
+                      }
+                    }, 1000/window.framePerSecond)
+                  }
+                  
                   blob = null
 
                   URL.revokeObjectURL(url)
